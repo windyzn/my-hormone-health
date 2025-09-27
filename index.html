@@ -55,8 +55,9 @@
             background: transparent;
             cursor: pointer;
         }
-        #main-content {
-            transition: all 0.3s ease-in-out;
+        
+        #biomarker-sidebar {
+            transition: transform 0.3s ease-in-out;
         }
     </style>
 </head>
@@ -78,7 +79,7 @@
             </div>
         </header>
 
-        <main class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
             <!-- Left Panel: Health Areas -->
             <div class="lg:col-span-1">
@@ -100,7 +101,7 @@
             </div>
 
             <!-- Center Panel: Report Details -->
-            <div id="main-content" class="lg:col-span-3">
+            <div class="lg:col-span-2">
                 <div id="report-details-container" class="bg-white p-6 sm:p-8 rounded-xl shadow-md min-h-[500px]">
                     <!-- Details for the selected health area will be injected here -->
                      <div class="text-center flex flex-col justify-center items-center h-full">
@@ -111,12 +112,13 @@
                 </div>
             </div>
 
-            <!-- Right Sidebar: Biomarker Details -->
-            <div id="biomarker-sidebar" class="lg:col-span-1 hidden">
-                <!-- Sidebar content injected here -->
-            </div>
-
         </main>
+        
+        <!-- Right Sidebar: Biomarker Details (Overlay) -->
+        <div id="sidebar-backdrop" class="fixed inset-0 bg-black bg-opacity-50 z-10 hidden"></div>
+        <div id="biomarker-sidebar" class="fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-lg p-6 z-20 transform translate-x-full">
+            <!-- Sidebar content injected here -->
+        </div>
         
         <!-- Footer -->
         <footer class="text-center mt-12 text-gray-500 text-sm">
@@ -156,8 +158,8 @@ Prostate Health,"Conditions affecting the prostate gland, including benign prost
                     app: document.getElementById('app'),
                     healthAreasContainer: document.getElementById('health-areas-container'),
                     reportDetailsContainer: document.getElementById('report-details-container'),
-                    mainContent: document.getElementById('main-content'),
                     biomarkerSidebar: document.getElementById('biomarker-sidebar'),
+                    sidebarBackdrop: document.getElementById('sidebar-backdrop'),
                     regenerateButton: document.getElementById('regenerate-button'),
                     uploadCsvButton: document.getElementById('upload-csv-button'),
                     csvFileInput: document.getElementById('csv-file-input'),
@@ -290,22 +292,43 @@ Prostate Health,"Conditions affecting the prostate gland, including benign prost
                     });
                     this.calculateAreaScores();
                 },
+                
+                displayUploadMessage(message, type = 'success') {
+                    const container = document.getElementById('upload-status-message');
+                    if (!container) return;
+                    
+                    const bgColor = type === 'success' ? 'bg-green-100 border-green-400 text-green-700' : 'bg-red-100 border-red-400 text-red-700';
+                    container.innerHTML = `<div class="border px-4 py-3 rounded relative ${bgColor}" role="alert">${message}</div>`;
+                    
+                    if (type === 'success') {
+                        setTimeout(() => {
+                            container.innerHTML = '';
+                        }, 4000);
+                    }
+                },
 
                 processUploadedData(csvText) {
-                    const lines = csvText.trim().split('\n').slice(1);
-                    let uploadedResults = lines.map(line => {
+                    const lines = csvText.trim().split('\n');
+                    if (lines.length <= 1) {
+                         throw new Error("CSV file is empty or contains only a header.");
+                    }
+                    
+                    const results = lines.slice(1).map(line => {
                         const [altId, measureId, measureName, concentration, lower, upper] = line.split(',');
                         const val = parseFloat(concentration);
                         const low = parseFloat(lower);
                         const high = parseFloat(upper);
-                        if (isNaN(val) || isNaN(low) || isNaN(high)) return null;
+                        if (isNaN(val) || isNaN(low) || isNaN(high)) {
+                            // If any crucial value is not a number, the format is wrong.
+                            throw new Error("Invalid data format in CSV. Please ensure columns for concentration, lower range, and upper range contain numeric values.");
+                        }
                         return this.calculateBiomarkerScore(val, low, high);
-                    }).filter(r => r !== null);
+                    });
                     
                     this.healthData.forEach(area => {
                         area.clientBiomarkers = area.AssociatedHormonesAndBiomarkers.map(hormoneName => {
-                            if (uploadedResults.length > 0) {
-                                const result = uploadedResults.shift();
+                            if (results.length > 0) {
+                                const result = results.shift();
                                 return { name: hormoneName, ...result };
                             } else {
                                 const fallbackScore = this.calculateBiomarkerScore(100, 50, 150);
@@ -313,8 +336,12 @@ Prostate Health,"Conditions affecting the prostate gland, including benign prost
                             }
                         });
                     });
+
                     this.calculateAreaScores();
-                    this.render();
+                    const activeCard = this.elements.healthAreasContainer.querySelector('.active');
+                    const activeIndex = activeCard ? parseInt(activeCard.dataset.index, 10) : 0;
+                    this.render(activeIndex);
+                    this.displayUploadMessage(`✓ Success! Report updated with ${lines.length - 1} biomarker results.`, 'success');
                 },
 
                 render(activeAreaIndex = 0) {
@@ -367,6 +394,7 @@ Prostate Health,"Conditions affecting the prostate gland, including benign prost
                     }).join('');
                     
                     this.elements.reportDetailsContainer.innerHTML = `
+                        <div id="upload-status-message" class="mb-4"></div>
                         <div class="mb-6">
                             <h2 class="text-2xl font-bold text-gray-800 mb-2">${area.NewHealthArea}</h2>
                             <p class="text-gray-600">${area.Description}</p>
@@ -420,17 +448,14 @@ Prostate Health,"Conditions affecting the prostate gland, including benign prost
                     const data = this.biomarkerDetailsData[biomarkerName];
                     if (this.elements.biomarkerSidebar && data) {
                         this.elements.biomarkerSidebar.innerHTML = `
-                            <div class="bg-white p-6 rounded-xl shadow-md sticky top-8">
-                                <div class="flex justify-between items-center mb-4 border-b pb-2">
-                                    <h3 class="text-lg font-semibold text-gray-800">${data.title}</h3>
-                                    <button class="close-sidebar-btn text-gray-400 hover:text-gray-700">&times;</button>
-                                </div>
-                                <p class="text-sm text-gray-600 leading-relaxed">${data.description}</p>
+                            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                                <h3 class="text-lg font-semibold text-gray-800">${data.title}</h3>
+                                <button class="close-sidebar-btn text-gray-400 hover:text-gray-700">&times;</button>
                             </div>
+                            <p class="text-sm text-gray-600 leading-relaxed">${data.description}</p>
                         `;
-                        this.elements.mainContent.classList.remove('lg:col-span-3');
-                        this.elements.mainContent.classList.add('lg:col-span-2');
-                        this.elements.biomarkerSidebar.classList.remove('hidden');
+                        this.elements.biomarkerSidebar.classList.remove('translate-x-full');
+                        this.elements.sidebarBackdrop.classList.remove('hidden');
                     } else {
                         this.hideBiomarkerDetails();
                     }
@@ -438,9 +463,8 @@ Prostate Health,"Conditions affecting the prostate gland, including benign prost
 
                 hideBiomarkerDetails() {
                     if (this.elements.biomarkerSidebar) {
-                        this.elements.mainContent.classList.remove('lg:col-span-2');
-                        this.elements.mainContent.classList.add('lg:col-span-3');
-                        this.elements.biomarkerSidebar.classList.add('hidden');
+                        this.elements.biomarkerSidebar.classList.add('translate-x-full');
+                        this.elements.sidebarBackdrop.classList.add('hidden');
                     }
                 },
 
@@ -464,6 +488,10 @@ Prostate Health,"Conditions affecting the prostate gland, including benign prost
                         }
                     });
 
+                    this.elements.sidebarBackdrop.addEventListener('click', () => {
+                        this.hideBiomarkerDetails();
+                    });
+
                     this.elements.regenerateButton.addEventListener('click', () => {
                         this.generateRandomData();
                         const activeCard = this.elements.healthAreasContainer.querySelector('.active');
@@ -477,12 +505,18 @@ Prostate Health,"Conditions affecting the prostate gland, including benign prost
 
                     this.elements.csvFileInput.addEventListener('change', (event) => {
                         const file = event.target.files[0];
-                        if (file) {
-                            const reader = new FileReader();
-                            reader.onload = (e) => { this.processUploadedData(e.target.result); };
-                            reader.readAsText(file);
-                        }
-                        event.target.value = '';
+                        if (!file) return;
+
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            try {
+                                this.processUploadedData(e.target.result);
+                            } catch (error) {
+                                this.displayUploadMessage(`✗ ${error.message}`, 'error');
+                            }
+                        };
+                        reader.readAsText(file);
+                        event.target.value = ''; // Reset to allow re-uploading the same file
                     });
                 }
             };
