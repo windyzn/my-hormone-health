@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Molecular You - Hormone Health Report</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .health-area-card.active {
+            background-color: #e0f2fe; /* light blue */
+            border-color: #38bdf8; /* sky blue */
+        }
+        .score-bar-bg {
+            background-color: #e5e7eb; /* gray-200 */
+        }
+        .score-bar {
+            transition: width 0.5s ease-in-out;
+        }
+        :root {
+            --color-health-red: #EF702C;
+            --color-health-yellow: #FABF37;
+            --color-health-green: #A4CBC4;
+            --color-brand-teal: #28B8A5;
+            --color-brand-pink: #E45E7C;
+            --color-brand-yellow-green: #89B900;
+            --color-brand-orange: #FF8705;
+            --color-brand-royal-blue: #4B4DED;
+        }
+        .bg-health-red { background-color: var(--color-health-red); }
+        .bg-health-yellow { background-color: var(--color-health-yellow); }
+        .bg-health-green { background-color: var(--color-health-green); }
+        .text-health-red { color: var(--color-health-red); }
+        .text-health-yellow { color: var(--color-health-yellow); }
+        .text-health-green { color: var(--color-health-green); }
+
+        .text-brand-teal { color: var(--color-brand-teal); }
+        .bg-brand-teal { background-color: var(--color-brand-teal); }
+        .hover\:bg-brand-teal-dark:hover { background-color: #219a8a; } /* A slightly darker teal for hover */
+        .bg-brand-royal-blue { background-color: var(--color-brand-royal-blue); }
+        .hover\:bg-brand-royal-blue-dark:hover { background-color: #3c3de0; } /* A slightly darker blue for hover */
+
+        .bg-brand-orange { background-color: var(--color-brand-orange); }
+        .hover\:bg-brand-orange-dark:hover { background-color: #e67a04; } /* A slightly darker orange for hover */
+        .bg-brand-pink { background-color: var(--color-brand-pink); }
+        .hover\:bg-brand-pink-dark:hover { background-color: #d34a68; } /* A slightly darker pink for hover */
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div id="app" class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+        
+        <!-- Header -->
+        <header class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-brand-teal">Molecular You</h1>
+                    <p class="text-lg text-gray-600">Hormone Health Report</p>
+                </div>
+                <div class="text-right">
+                    <p class="font-medium">Client: Jane Doe</p>
+                    <p class="text-sm text-gray-500">Report Date: <span id="report-date"></span></p>
+                </div>
+            </div>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Left Panel: Health Areas -->
+            <div class="lg:col-span-1">
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h2 class="text-xl font-semibold mb-4 border-b pb-2">Health Areas</h2>
+                    <div id="health-areas-container" class="space-y-3">
+                        <!-- Health area cards will be injected here -->
+                    </div>
+                    <div class="mt-6 space-y-2">
+                         <button id="upload-csv-button" class="w-full bg-brand-teal hover:bg-brand-teal-dark text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                            Upload Test CSV
+                        </button>
+                        <input type="file" id="csv-file-input" class="hidden" accept=".csv">
+                        <button id="regenerate-button" class="w-full bg-brand-royal-blue hover:bg-brand-royal-blue-dark text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                            Generate Random Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Report Details -->
+            <div class="lg:col-span-2">
+                <div id="report-details-container" class="bg-white p-6 sm:p-8 rounded-xl shadow-md min-h-[500px]">
+                    <!-- Details for the selected health area will be injected here -->
+                     <div class="text-center flex flex-col justify-center items-center h-full">
+                        <svg class="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002-2h2a2 2 0 002 2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                        <h3 class="text-lg font-medium text-gray-500">Select a Health Area</h3>
+                        <p class="text-gray-400">Choose an area from the left to view your detailed biomarker report.</p>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        
+        <!-- Footer -->
+        <footer class="text-center mt-12 text-gray-500 text-sm">
+            <p>&copy; <span id="current-year"></span> Molecular You. All rights reserved.</p>
+            <p class="mt-1">This report is for informational purposes only and is not a substitute for professional medical advice.</p>
+        </footer>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const app = {
+                // Raw CSV data defining the report structure
+                structureCsvData: `New Health Area,Description,Associated Hormones & Biomarkers,Key Biological Pathways
+Menstrual Irregularities & Infertility,"Conditions characterized by disruptions in the normal menstrual cycle, often caused by hormonal imbalances that affect ovulation and reproductive health.","Progesterone, 17-Hydroxyprogesterone, Estrone, Estradiol, Androgens (Testosterone, Androstenedione, Dihydrotestosterone)","Steroidogenesis Pathway: Dysregulation of this pathway, which synthesizes all steroid hormones from cholesterol, is a direct cause of these conditions. Androgen & Estrogen Metabolism: Imbalances in androgen and estrogen levels are central to these issues, particularly in conditions like PCOS."
+Adrenal & Endocrine Disorders,"A group of conditions resulting from the adrenal glands producing too much or too little of certain hormones, affecting the body's stress response and metabolism.","Cortisol, Corticosterone, Aldosterone, 17-Hydroxyprogesterone","Hypothalamic-Pituitary-Adrenal (HPA) Axis: This is the neuroendocrine system that regulates the body's response to stress and the production of cortisol and corticosterone. Renin-Angiotensin-Aldosterone System (RAAS): This system is a critical regulator of blood pressure, fluid balance, and electrolyte balance, and is directly influenced by aldosterone."
+Osteoporosis,"A disease characterized by a reduction in bone density, making bones more fragile and susceptible to fractures. Hormones, particularly sex hormones, play a crucial role in maintaining bone health.","Progesterone, Estradiol, Testosterone","Androgen & Estrogen Metabolism: Estradiol slows bone resorption, while progesterone is a hormone that stimulates new bone formation. Testosterone deficiency can also lead to bone loss."
+Prostate Health,"Conditions affecting the prostate gland, including benign prostatic hyperplasia (BPH) and prostate cancer, which are influenced by androgen hormone levels.","Testosterone, Dihydrotestosterone (DHT)","Androgen Metabolism: This is the pathway that converts testosterone to its more potent form, Dihydrotestosterone (DHT). Overactivity of this pathway is linked to abnormal prostate growth."`,
+                
+                healthData: [],
+                
+                // DOM Elements
+                elements: {
+                    healthAreasContainer: document.getElementById('health-areas-container'),
+                    reportDetailsContainer: document.getElementById('report-details-container'),
+                    regenerateButton: document.getElementById('regenerate-button'),
+                    uploadCsvButton: document.getElementById('upload-csv-button'),
+                    csvFileInput: document.getElementById('csv-file-input'),
+                    reportDate: document.getElementById('report-date'),
+                    currentYear: document.getElementById('current-year'),
+                },
+
+                // Initialization
+                init() {
+                    this.parseStructureCSV();
+                    this.generateRandomData();
+                    this.render();
+                    this.addEventListeners();
+                    this.updateDate();
+                },
+
+                updateDate() {
+                    const today = new Date();
+                    this.elements.reportDate.textContent = today.toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                    this.elements.currentYear.textContent = today.getFullYear();
+                },
+
+                parseStructureCSV() {
+                    const lines = this.structureCsvData.trim().split('\n');
+                    const headers = lines[0].split(',').map(h => h.trim());
+                    this.healthData = lines.slice(1).map(line => {
+                        const values = line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g).map(v => v.replace(/"/g, '').trim());
+                        const area = {};
+                        headers.forEach((header, i) => {
+                            const key = header.replace(/ /g, '').replace('&', 'And');
+                            area[key] = values[i];
+                        });
+                        area.AssociatedHormonesAndBiomarkers = area.AssociatedHormonesAndBiomarkers
+                            .replace('Androgens (', '').replace(')', '').replace(' (DHT)', '')
+                            .split(',').map(b => b.trim());
+                        return area;
+                    });
+                },
+
+                // SCORING LOGIC
+                calculateBiomarkerScore(concentration, lower_ref, upper_ref) {
+                    const cutoff = 0.5; // 50% cutoff
+                    
+                    const range = upper_ref - lower_ref;
+                    const lower_green_ref = lower_ref + (range * 0.05);
+                    const upper_green_ref = upper_ref - (range * 0.05);
+                    const green_range_width = upper_green_ref - lower_green_ref;
+
+                    let percent_from_rr = 0;
+                    let status = 'In Range';
+                    let statusColorName = 'green';
+                    
+                    if (concentration > upper_green_ref) {
+                        status = 'High';
+                        percent_from_rr = (concentration - upper_green_ref) / green_range_width;
+                    } else if (concentration < lower_green_ref) {
+                        status = 'Low';
+                        percent_from_rr = (lower_green_ref - concentration) / green_range_width;
+                    }
+
+                    if (status !== 'In Range') {
+                         if (percent_from_rr < (cutoff / 2)) {
+                            statusColorName = 'yellow'; // Borderline
+                        } else {
+                            statusColorName = 'red'; // Significantly out of range
+                        }
+                    }
+
+                    let biomarkerScore = 100;
+                    if (status !== 'In Range') {
+                         if (percent_from_rr >= cutoff) {
+                            biomarkerScore = 0;
+                        } else {
+                            biomarkerScore = 100 * (1 - percent_from_rr / cutoff);
+                        }
+                    }
+                   
+                    return {
+                        score: Math.floor(biomarkerScore),
+                        status: status,
+                        statusColorName: statusColorName,
+                        concentration: concentration.toFixed(2),
+                        range: `${lower_ref.toFixed(2)} - ${upper_ref.toFixed(2)}`,
+                        unit: 'ng/mL'
+                    };
+                },
+
+                calculateAreaScores() {
+                    this.healthData.forEach(area => {
+                        const totalBiomarkers = area.clientBiomarkers.length;
+                        if (totalBiomarkers === 0) {
+                            area.score = 100;
+                            area.scoreStatus = 'Optimal';
+                            area.scoreColorName = 'green';
+                            return;
+                        }
+
+                        const sum_of_biomarker_scores = area.clientBiomarkers.reduce((sum, b) => sum + b.score, 0);
+                        const sum_of_weights = totalBiomarkers;
+                        
+                        area.score = Math.floor(sum_of_biomarker_scores / sum_of_weights);
+
+                        if (area.score >= 90) { // Merged Optimal and Good
+                            area.scoreStatus = 'Optimal';
+                            area.scoreColorName = 'green';
+                        } else if (area.score >= 70) {
+                            area.scoreStatus = 'Needs Attention';
+                            area.scoreColorName = 'yellow';
+                        } else {
+                            area.scoreStatus = 'High Concern';
+                            area.scoreColorName = 'red';
+                        }
+                    });
+                },
+
+                generateRandomData() {
+                    this.healthData.forEach(area => {
+                        area.clientBiomarkers = area.AssociatedHormonesAndBiomarkers.map(biomarkerName => {
+                            const lower_ref = 50 + Math.random() * 20;
+                            const upper_ref = 150 + Math.random() * 50;
+                            
+                            const randomValue = Math.random();
+                            let concentration;
+                            if (randomValue < 0.2) {
+                                concentration = lower_ref - Math.random() * (lower_ref * 0.4);
+                            } else if (randomValue > 0.8) {
+                                concentration = upper_ref + Math.random() * (upper_ref * 0.4);
+                            } else {
+                                concentration = lower_ref + Math.random() * (upper_ref - lower_ref);
+                            }
+                            
+                            const scoreData = this.calculateBiomarkerScore(concentration, lower_ref, upper_ref);
+                            return { name: biomarkerName, ...scoreData };
+                        });
+                    });
+                    this.calculateAreaScores();
+                },
+
+                processUploadedData(csvText) {
+                    const lines = csvText.trim().split('\n').slice(1);
+                    let uploadedResults = lines.map(line => {
+                        const [altId, measureId, measureName, concentration, lower, upper] = line.split(',');
+                        const val = parseFloat(concentration);
+                        const low = parseFloat(lower);
+                        const high = parseFloat(upper);
+                        
+                        if (isNaN(val) || isNaN(low) || isNaN(high)) return null;
+
+                        return this.calculateBiomarkerScore(val, low, high);
+                    }).filter(r => r !== null);
+                    
+                    this.healthData.forEach(area => {
+                        area.clientBiomarkers = area.AssociatedHormonesAndBiomarkers.map(hormoneName => {
+                            if (uploadedResults.length > 0) {
+                                const result = uploadedResults.shift();
+                                return { name: hormoneName, ...result };
+                            } else {
+                                const fallbackScore = this.calculateBiomarkerScore(100, 50, 150);
+                                return { name: hormoneName, ...fallbackScore };
+                            }
+                        });
+                    });
+                    
+                    this.calculateAreaScores();
+                    this.render();
+                },
+
+                render(activeAreaIndex = 0) {
+                    this.renderHealthAreaList(activeAreaIndex);
+                    this.renderReportDetails(activeAreaIndex);
+                },
+
+                renderHealthAreaList(activeIndex) {
+                    this.elements.healthAreasContainer.innerHTML = this.healthData.map((area, index) => `
+                        <div class="health-area-card border rounded-lg p-4 cursor-pointer hover:bg-gray-100 transition duration-200 flex flex-col gap-2 ${index === activeIndex ? 'active' : ''}" data-index="${index}">
+                            <span class="font-semibold text-gray-700">${area.NewHealthArea}</span>
+                            <span class="text-sm text-gray-500">Score: ${area.score}/100</span>
+                            <div class="score-bar-bg w-full h-2 rounded-full overflow-hidden">
+                                <div class="score-bar h-full rounded-full bg-health-${area.scoreColorName}" style="width: ${area.score}%"></div>
+                            </div>
+                             <div class="mt-1">
+                                <span class="text-xs font-bold px-2 py-1 rounded-full text-white bg-health-${area.scoreColorName}">${area.scoreStatus}</span>
+                            </div>
+                        </div>
+                    `).join('');
+                },
+
+                renderReportDetails(index) {
+                    const area = this.healthData[index];
+                    if (!area) return;
+
+                    const biomarkersHtml = area.clientBiomarkers.map(b => {
+                        let statusColorClass = `text-health-${b.statusColorName}`;
+                        let statusIcon;
+
+                        switch(b.status) {
+                            case 'In Range': statusIcon = '✓'; break;
+                            case 'Low': statusIcon = '↓'; break;
+                            case 'High': statusIcon = '↑'; break;
+                            default: statusIcon = '?'; statusColorClass = 'text-gray-500'; break;
+                        }
+                        
+                        return `
+                            <tr class="border-b last:border-b-0">
+                                <td class="py-3 px-4 font-medium">${b.name}</td>
+                                <td class="py-3 px-4">${b.concentration} ${b.unit}</td>
+                                <td class="py-3 px-4 text-sm text-gray-500">${b.range}</td>
+                                <td class="py-3 px-4 font-semibold ${statusColorClass}">
+                                    <span class="mr-2">${statusIcon}</span>${b.status}
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                    
+                    this.elements.reportDetailsContainer.innerHTML = `
+                        <div class="mb-6">
+                            <h2 class="text-2xl font-bold text-gray-800 mb-2">${area.NewHealthArea}</h2>
+                            <p class="text-gray-600">${area.Description}</p>
+                        </div>
+
+                        <div class="mb-8 p-4 bg-gray-50 rounded-lg">
+                            <h3 class="font-semibold text-lg mb-2">Overall Score: <span class="font-bold text-health-${area.scoreColorName}">${area.score}/100 (${area.scoreStatus})</span></h3>
+                            <div class="score-bar-bg w-full h-4 rounded-full overflow-hidden">
+                                <div class="score-bar h-full rounded-full bg-health-${area.scoreColorName}" style="width: ${area.score}%"></div>
+                            </div>
+                        </div>
+
+                        <div class="mb-8">
+                            <h3 class="text-xl font-semibold mb-3">Associated Biomarkers</h3>
+                            <div class="overflow-x-auto border rounded-lg">
+                                <table class="w-full text-sm text-left">
+                                    <thead class="bg-gray-100 text-gray-600 uppercase text-xs">
+                                        <tr>
+                                            <th class="py-3 px-4">Biomarker</th>
+                                            <th class="py-3 px-4">CONCENTRATION</th>
+                                            <th class="py-3 px-4">Optimal Range</th>
+                                            <th class="py-3 px-4">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y">
+                                        ${biomarkersHtml}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 class="text-xl font-semibold mb-3">Key Biological Pathways</h3>
+                            <p class="text-gray-600 leading-relaxed">${area.KeyBiologicalPathways}</p>
+                        </div>
+
+                        <div class="mt-8">
+                            <h3 class="text-xl font-semibold mb-3">Lifestyle Suggestions</h3>
+                            <p class="text-gray-600 mb-4">Here are some general lifestyle suggestions that may help support your overall hormone health. Please consult with a healthcare professional for personalized advice.</p>
+                            <ul class="space-y-3 text-gray-600">
+                                <li class="flex items-start">
+                                    <span class="mr-3 text-brand-yellow-green">✓</span>
+                                    <span><strong class="font-semibold">Balanced Diet:</strong> Focus on whole foods, including lean proteins, healthy fats (like avocados and nuts), and plenty of fiber from fruits and vegetables.</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <span class="mr-3 text-brand-yellow-green">✓</span>
+                                    <span><strong class="font-semibold">Regular Exercise:</strong> Aim for a mix of cardiovascular activity, strength training, and flexibility work. Consistency is key.</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <span class="mr-3 text-brand-yellow-green">✓</span>
+                                    <span><strong class="font-semibold">Stress Management:</strong> Incorporate practices like mindfulness, meditation, yoga, or deep breathing exercises to help manage cortisol levels.</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <span class="mr-3 text-brand-yellow-green">✓</span>
+                                    <span><strong class="font-semibold">Prioritize Sleep:</strong> Aim for 7-9 hours of quality sleep per night, as sleep is crucial for hormone regulation.</span>
+                                </li>
+                            </ul>
+                        </div>
+                    `;
+                },
+                
+                addEventListeners() {
+                    this.elements.healthAreasContainer.addEventListener('click', (e) => {
+                        const card = e.target.closest('.health-area-card');
+                        if (card) {
+                            const index = parseInt(card.dataset.index, 10);
+                            this.render(index);
+                        }
+                    });
+
+                    this.elements.regenerateButton.addEventListener('click', () => {
+                        this.generateRandomData();
+                        const activeCard = this.elements.healthAreasContainer.querySelector('.active');
+                        const activeIndex = activeCard ? parseInt(activeCard.dataset.index, 10) : 0;
+                        this.render(activeIndex);
+                    });
+                    
+                    this.elements.uploadCsvButton.addEventListener('click', () => {
+                        this.elements.csvFileInput.click();
+                    });
+
+                    this.elements.csvFileInput.addEventListener('change', (event) => {
+                        const file = event.target.files[0];
+                        if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (e) => {
+                                this.processUploadedData(e.target.result);
+                            };
+                            reader.readAsText(file);
+                        }
+                        event.target.value = '';
+                    });
+                }
+            };
+
+            app.init();
+        });
+    </script>
+</body>
+</html>
