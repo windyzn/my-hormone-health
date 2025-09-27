@@ -47,6 +47,17 @@
         .hover\:bg-brand-orange-dark:hover { background-color: #e67a04; } /* A slightly darker orange for hover */
         .bg-brand-pink { background-color: var(--color-brand-pink); }
         .hover\:bg-brand-pink-dark:hover { background-color: #d34a68; } /* A slightly darker pink for hover */
+
+        .close-sidebar-btn {
+            font-size: 1.5rem;
+            line-height: 1;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+        }
+        #main-content {
+            transition: all 0.3s ease-in-out;
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -67,7 +78,7 @@
             </div>
         </header>
 
-        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <main class="grid grid-cols-1 lg:grid-cols-4 gap-8">
             
             <!-- Left Panel: Health Areas -->
             <div class="lg:col-span-1">
@@ -88,8 +99,8 @@
                 </div>
             </div>
 
-            <!-- Right Panel: Report Details -->
-            <div class="lg:col-span-2">
+            <!-- Center Panel: Report Details -->
+            <div id="main-content" class="lg:col-span-3">
                 <div id="report-details-container" class="bg-white p-6 sm:p-8 rounded-xl shadow-md min-h-[500px]">
                     <!-- Details for the selected health area will be injected here -->
                      <div class="text-center flex flex-col justify-center items-center h-full">
@@ -98,6 +109,11 @@
                         <p class="text-gray-400">Choose an area from the left to view your detailed biomarker report.</p>
                     </div>
                 </div>
+            </div>
+
+            <!-- Right Sidebar: Biomarker Details -->
+            <div id="biomarker-sidebar" class="lg:col-span-1 hidden">
+                <!-- Sidebar content injected here -->
             </div>
 
         </main>
@@ -115,17 +131,33 @@
             const app = {
                 // Raw CSV data defining the report structure
                 structureCsvData: `New Health Area,Description,Associated Hormones & Biomarkers,Key Biological Pathways
-Menstrual Irregularities & Infertility,"Conditions characterized by disruptions in the normal menstrual cycle, often caused by hormonal imbalances that affect ovulation and reproductive health.","Progesterone, 17-Hydroxyprogesterone, Estrone, Estradiol, Androgens (Testosterone, Androstenedione, Dihydrotestosterone)","Steroidogenesis Pathway: Dysregulation of this pathway, which synthesizes all steroid hormones from cholesterol, is a direct cause of these conditions. Androgen & Estrogen Metabolism: Imbalances in androgen and estrogen levels are central to these issues, particularly in conditions like PCOS."
-Adrenal & Endocrine Disorders,"A group of conditions resulting from the adrenal glands producing too much or too little of certain hormones, affecting the body's stress response and metabolism.","Cortisol, Corticosterone, Aldosterone, 17-Hydroxyprogesterone","Hypothalamic-Pituitary-Adrenal (HPA) Axis: This is the neuroendocrine system that regulates the body's response to stress and the production of cortisol and corticosterone. Renin-Angiotensin-Aldosterone System (RAAS): This system is a critical regulator of blood pressure, fluid balance, and electrolyte balance, and is directly influenced by aldosterone."
-Osteoporosis,"A disease characterized by a reduction in bone density, making bones more fragile and susceptible to fractures. Hormones, particularly sex hormones, play a crucial role in maintaining bone health.","Progesterone, Estradiol, Testosterone","Androgen & Estrogen Metabolism: Estradiol slows bone resorption, while progesterone is a hormone that stimulates new bone formation. Testosterone deficiency can also lead to bone loss."
-Prostate Health,"Conditions affecting the prostate gland, including benign prostatic hyperplasia (BPH) and prostate cancer, which are influenced by androgen hormone levels.","Testosterone, Dihydrotestosterone (DHT)","Androgen Metabolism: This is the pathway that converts testosterone to its more potent form, Dihydrotestosterone (DHT). Overactivity of this pathway is linked to abnormal prostate growth."`,
+Menstrual Irregularities & Infertility,"Conditions characterized by disruptions in the normal menstrual cycle, often caused by hormonal imbalances that affect ovulation and reproductive health.","Progesterone,17-Hydroxyprogesterone,Estrone,Estradiol,Testosterone,Androstenedione,Dihydrotestosterone","Steroidogenesis Pathway: Dysregulation of this pathway, which synthesizes all steroid hormones from cholesterol, is a direct cause of these conditions. Androgen & Estrogen Metabolism: Imbalances in androgen and estrogen levels are central to these issues, particularly in conditions like PCOS."
+Adrenal & Endocrine Disorders,"A group of conditions resulting from the adrenal glands producing too much or too little of certain hormones, affecting the body's stress response and metabolism.","Cortisol,Corticosterone,Aldosterone,17-Hydroxyprogesterone","Hypothalamic-Pituitary-Adrenal (HPA) Axis: This is the neuroendocrine system that regulates the body's response to stress and the production of cortisol and corticosterone. Renin-Angiotensin-Aldosterone System (RAAS): This system is a critical regulator of blood pressure, fluid balance, and electrolyte balance, and is directly influenced by aldosterone."
+Osteoporosis,"A disease characterized by a reduction in bone density, making bones more fragile and susceptible to fractures. Hormones, particularly sex hormones, play a crucial role in maintaining bone health.","Progesterone,Estradiol,Testosterone","Androgen & Estrogen Metabolism: Estradiol slows bone resorption, while progesterone is a hormone that stimulates new bone formation. Testosterone deficiency can also lead to bone loss."
+Prostate Health,"Conditions affecting the prostate gland, including benign prostatic hyperplasia (BPH) and prostate cancer, which are influenced by androgen hormone levels.","Testosterone,Dihydrotestosterone","Androgen Metabolism: This is the pathway that converts testosterone to its more potent form, Dihydrotestosterone (DHT). Overactivity of this pathway is linked to abnormal prostate growth."`,
                 
                 healthData: [],
                 
+                biomarkerDetailsData: {
+                    'Progesterone': { title: 'About Progesterone', description: 'Progesterone is a key hormone in the menstrual cycle and pregnancy. It prepares the uterus for a fertilized egg and helps maintain pregnancy. In balance with estrogen, it regulates the menstrual cycle.' },
+                    '17-Hydroxyprogesterone': { title: 'About 17-Hydroxyprogesterone', description: 'This is a steroid hormone produced by the adrenal glands and gonads. It is a precursor to cortisol and androgens. Levels are often measured to diagnose certain adrenal disorders.' },
+                    'Estrone': { title: 'About Estrone', description: 'Estrone (E1) is one of the three main types of estrogen. It is the primary estrogen present in the body after menopause. It is produced in the ovaries, adipose tissue, and adrenal glands.' },
+                    'Estradiol': { title: 'About Estradiol', description: 'Estradiol (E2) is the most potent form of estrogen and is crucial for female reproductive health, bone health, and has effects on the brain and cardiovascular system.' },
+                    'Testosterone': { title: 'About Testosterone', description: 'Testosterone is the primary male sex hormone, but it is also important for women. It plays a key role in muscle mass, bone density, libido, and energy levels in both sexes.' },
+                    'Androstenedione': { title: 'About Androstenedione', description: 'An androgen hormone that is a precursor to both testosterone and estrogen. It is produced in the adrenal glands and the gonads.' },
+                    'Dihydrotestosterone': { title: 'About Dihydrotestosterone (DHT)', description: 'DHT is a potent androgen derived from testosterone. It plays a significant role in prostate health, hair patterns, and development of male primary sexual characteristics.' },
+                    'Cortisol': { title: 'About Cortisol', description: 'Often called the "stress hormone," cortisol is produced by the adrenal glands. It helps regulate metabolism, immune response, and blood pressure, and is essential for the body\'s response to stress.' },
+                    'Corticosterone': { title: 'About Corticosterone', description: 'A steroid hormone from the adrenal cortex, involved in metabolic, immune, and stress responses. It is a precursor to aldosterone.' },
+                    'Aldosterone': { title: 'About Aldosterone', description: 'Aldosterone is a hormone that helps regulate blood pressure by managing the balance of sodium and potassium in the body. It is a key component of the RAAS system.' }
+                },
+
                 // DOM Elements
                 elements: {
+                    app: document.getElementById('app'),
                     healthAreasContainer: document.getElementById('health-areas-container'),
                     reportDetailsContainer: document.getElementById('report-details-container'),
+                    mainContent: document.getElementById('main-content'),
+                    biomarkerSidebar: document.getElementById('biomarker-sidebar'),
                     regenerateButton: document.getElementById('regenerate-button'),
                     uploadCsvButton: document.getElementById('upload-csv-button'),
                     csvFileInput: document.getElementById('csv-file-input'),
@@ -159,7 +191,6 @@ Prostate Health,"Conditions affecting the prostate gland, including benign prost
                             area[key] = values[i];
                         });
                         area.AssociatedHormonesAndBiomarkers = area.AssociatedHormonesAndBiomarkers
-                            .replace('Androgens (', '').replace(')', '').replace(' (DHT)', '')
                             .split(',').map(b => b.trim());
                         return area;
                     });
@@ -167,8 +198,7 @@ Prostate Health,"Conditions affecting the prostate gland, including benign prost
 
                 // SCORING LOGIC
                 calculateBiomarkerScore(concentration, lower_ref, upper_ref) {
-                    const cutoff = 0.5; // 50% cutoff
-                    
+                    const cutoff = 0.5;
                     const range = upper_ref - lower_ref;
                     const lower_green_ref = lower_ref + (range * 0.05);
                     const upper_green_ref = upper_ref - (range * 0.05);
@@ -188,9 +218,9 @@ Prostate Health,"Conditions affecting the prostate gland, including benign prost
 
                     if (status !== 'In Range') {
                          if (percent_from_rr < (cutoff / 2)) {
-                            statusColorName = 'yellow'; // Borderline
+                            statusColorName = 'yellow';
                         } else {
-                            statusColorName = 'red'; // Significantly out of range
+                            statusColorName = 'red';
                         }
                     }
 
@@ -225,10 +255,9 @@ Prostate Health,"Conditions affecting the prostate gland, including benign prost
 
                         const sum_of_biomarker_scores = area.clientBiomarkers.reduce((sum, b) => sum + b.score, 0);
                         const sum_of_weights = totalBiomarkers;
-                        
                         area.score = Math.floor(sum_of_biomarker_scores / sum_of_weights);
 
-                        if (area.score >= 90) { // Merged Optimal and Good
+                        if (area.score >= 90) {
                             area.scoreStatus = 'Optimal';
                             area.scoreColorName = 'green';
                         } else if (area.score >= 70) {
@@ -246,7 +275,6 @@ Prostate Health,"Conditions affecting the prostate gland, including benign prost
                         area.clientBiomarkers = area.AssociatedHormonesAndBiomarkers.map(biomarkerName => {
                             const lower_ref = 50 + Math.random() * 20;
                             const upper_ref = 150 + Math.random() * 50;
-                            
                             const randomValue = Math.random();
                             let concentration;
                             if (randomValue < 0.2) {
@@ -256,7 +284,6 @@ Prostate Health,"Conditions affecting the prostate gland, including benign prost
                             } else {
                                 concentration = lower_ref + Math.random() * (upper_ref - lower_ref);
                             }
-                            
                             const scoreData = this.calculateBiomarkerScore(concentration, lower_ref, upper_ref);
                             return { name: biomarkerName, ...scoreData };
                         });
@@ -271,9 +298,7 @@ Prostate Health,"Conditions affecting the prostate gland, including benign prost
                         const val = parseFloat(concentration);
                         const low = parseFloat(lower);
                         const high = parseFloat(upper);
-                        
                         if (isNaN(val) || isNaN(low) || isNaN(high)) return null;
-
                         return this.calculateBiomarkerScore(val, low, high);
                     }).filter(r => r !== null);
                     
@@ -288,7 +313,6 @@ Prostate Health,"Conditions affecting the prostate gland, including benign prost
                             }
                         });
                     });
-                    
                     this.calculateAreaScores();
                     this.render();
                 },
@@ -296,6 +320,7 @@ Prostate Health,"Conditions affecting the prostate gland, including benign prost
                 render(activeAreaIndex = 0) {
                     this.renderHealthAreaList(activeAreaIndex);
                     this.renderReportDetails(activeAreaIndex);
+                    this.hideBiomarkerDetails();
                 },
 
                 renderHealthAreaList(activeIndex) {
@@ -320,7 +345,6 @@ Prostate Health,"Conditions affecting the prostate gland, including benign prost
                     const biomarkersHtml = area.clientBiomarkers.map(b => {
                         let statusColorClass = `text-health-${b.statusColorName}`;
                         let statusIcon;
-
                         switch(b.status) {
                             case 'In Range': statusIcon = '✓'; break;
                             case 'Low': statusIcon = '↓'; break;
@@ -330,7 +354,9 @@ Prostate Health,"Conditions affecting the prostate gland, including benign prost
                         
                         return `
                             <tr class="border-b last:border-b-0">
-                                <td class="py-3 px-4 font-medium">${b.name}</td>
+                                <td class="py-3 px-4 font-medium">
+                                    <span class="biomarker-link cursor-pointer hover:underline text-brand-royal-blue" data-biomarker-name="${b.name}">${b.name}</span>
+                                </td>
                                 <td class="py-3 px-4">${b.concentration} ${b.unit}</td>
                                 <td class="py-3 px-4 text-sm text-gray-500">${b.range}</td>
                                 <td class="py-3 px-4 font-semibold ${statusColorClass}">
@@ -381,33 +407,60 @@ Prostate Health,"Conditions affecting the prostate gland, including benign prost
                             <h3 class="text-xl font-semibold mb-3">Lifestyle Suggestions</h3>
                             <p class="text-gray-600 mb-4">Here are some general lifestyle suggestions that may help support your overall hormone health. Please consult with a healthcare professional for personalized advice.</p>
                             <ul class="space-y-3 text-gray-600">
-                                <li class="flex items-start">
-                                    <span class="mr-3 text-brand-yellow-green">✓</span>
-                                    <span><strong class="font-semibold">Balanced Diet:</strong> Focus on whole foods, including lean proteins, healthy fats (like avocados and nuts), and plenty of fiber from fruits and vegetables.</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <span class="mr-3 text-brand-yellow-green">✓</span>
-                                    <span><strong class="font-semibold">Regular Exercise:</strong> Aim for a mix of cardiovascular activity, strength training, and flexibility work. Consistency is key.</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <span class="mr-3 text-brand-yellow-green">✓</span>
-                                    <span><strong class="font-semibold">Stress Management:</strong> Incorporate practices like mindfulness, meditation, yoga, or deep breathing exercises to help manage cortisol levels.</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <span class="mr-3 text-brand-yellow-green">✓</span>
-                                    <span><strong class="font-semibold">Prioritize Sleep:</strong> Aim for 7-9 hours of quality sleep per night, as sleep is crucial for hormone regulation.</span>
-                                </li>
+                                <li class="flex items-start"><span class="mr-3 text-brand-yellow-green">✓</span><span><strong class="font-semibold">Balanced Diet:</strong> Focus on whole foods, including lean proteins, healthy fats (like avocados and nuts), and plenty of fiber from fruits and vegetables.</span></li>
+                                <li class="flex items-start"><span class="mr-3 text-brand-yellow-green">✓</span><span><strong class="font-semibold">Regular Exercise:</strong> Aim for a mix of cardiovascular activity, strength training, and flexibility work. Consistency is key.</span></li>
+                                <li class="flex items-start"><span class="mr-3 text-brand-yellow-green">✓</span><span><strong class="font-semibold">Stress Management:</strong> Incorporate practices like mindfulness, meditation, yoga, or deep breathing exercises to help manage cortisol levels.</span></li>
+                                <li class="flex items-start"><span class="mr-3 text-brand-yellow-green">✓</span><span><strong class="font-semibold">Prioritize Sleep:</strong> Aim for 7-9 hours of quality sleep per night, as sleep is crucial for hormone regulation.</span></li>
                             </ul>
                         </div>
                     `;
                 },
                 
+                showBiomarkerDetails(biomarkerName) {
+                    const data = this.biomarkerDetailsData[biomarkerName];
+                    if (this.elements.biomarkerSidebar && data) {
+                        this.elements.biomarkerSidebar.innerHTML = `
+                            <div class="bg-white p-6 rounded-xl shadow-md sticky top-8">
+                                <div class="flex justify-between items-center mb-4 border-b pb-2">
+                                    <h3 class="text-lg font-semibold text-gray-800">${data.title}</h3>
+                                    <button class="close-sidebar-btn text-gray-400 hover:text-gray-700">&times;</button>
+                                </div>
+                                <p class="text-sm text-gray-600 leading-relaxed">${data.description}</p>
+                            </div>
+                        `;
+                        this.elements.mainContent.classList.remove('lg:col-span-3');
+                        this.elements.mainContent.classList.add('lg:col-span-2');
+                        this.elements.biomarkerSidebar.classList.remove('hidden');
+                    } else {
+                        this.hideBiomarkerDetails();
+                    }
+                },
+
+                hideBiomarkerDetails() {
+                    if (this.elements.biomarkerSidebar) {
+                        this.elements.mainContent.classList.remove('lg:col-span-2');
+                        this.elements.mainContent.classList.add('lg:col-span-3');
+                        this.elements.biomarkerSidebar.classList.add('hidden');
+                    }
+                },
+
                 addEventListeners() {
-                    this.elements.healthAreasContainer.addEventListener('click', (e) => {
-                        const card = e.target.closest('.health-area-card');
-                        if (card) {
-                            const index = parseInt(card.dataset.index, 10);
+                    this.elements.app.addEventListener('click', (e) => {
+                        const healthAreaCard = e.target.closest('.health-area-card');
+                        if (healthAreaCard) {
+                            const index = parseInt(healthAreaCard.dataset.index, 10);
                             this.render(index);
+                        }
+
+                        const biomarkerLink = e.target.closest('.biomarker-link');
+                        if (biomarkerLink) {
+                            const biomarkerName = biomarkerLink.dataset.biomarkerName;
+                            this.showBiomarkerDetails(biomarkerName);
+                        }
+
+                        const closeBtn = e.target.closest('.close-sidebar-btn');
+                        if (closeBtn) {
+                            this.hideBiomarkerDetails();
                         }
                     });
 
@@ -426,9 +479,7 @@ Prostate Health,"Conditions affecting the prostate gland, including benign prost
                         const file = event.target.files[0];
                         if (file) {
                             const reader = new FileReader();
-                            reader.onload = (e) => {
-                                this.processUploadedData(e.target.result);
-                            };
+                            reader.onload = (e) => { this.processUploadedData(e.target.result); };
                             reader.readAsText(file);
                         }
                         event.target.value = '';
@@ -441,3 +492,4 @@ Prostate Health,"Conditions affecting the prostate gland, including benign prost
     </script>
 </body>
 </html>
+
