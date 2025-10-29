@@ -59,6 +59,39 @@
         #biomarker-sidebar {
             transition: transform 0.3s ease-in-out;
         }
+
+        /* Tooltip styles */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+        }
+        
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 280px;
+            background-color: #333;
+            color: #fff;
+            text-align: left;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 10;
+            bottom: 125%; /* Position above the element */
+            left: 50%;
+            margin-left: -140px; /* Center it */
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.75rem; /* 12px */
+            font-weight: 400;
+            line-height: 1.4;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -401,7 +434,16 @@ Prostate Health,"Conditions affecting the prostate gland, including benign prost
                         </div>
 
                         <div class="mb-8 p-4 bg-gray-50 rounded-lg">
-                            <h3 class="font-semibold text-lg mb-2">Overall Score: <span class="font-bold text-health-${area.scoreColorName}">${area.score}/100 (${area.scoreStatus})</span></h3>
+                            <div class="flex items-center mb-2">
+                                <h3 class="font-semibold text-lg mr-2">Overall Score: <span class="font-bold text-health-${area.scoreColorName}">${area.score}/100 (${area.scoreStatus})</span></h3>
+                                <div class="tooltip">
+                                    <span class="inline-flex items-center justify-center w-5 h-5 bg-gray-200 text-gray-500 rounded-full text-xs font-bold">?</span>
+                                    <span class="tooltiptext">
+                                        <strong>How is this scored?</strong><br>
+                                        Your overall score is the weighted average of the individual biomarker scores (0-100) in this health area. A biomarker's score is calculated based on its deviation from its optimal range.
+                                    </span>
+                                </div>
+                            </div>
                             <div class="score-bar-bg w-full h-4 rounded-full overflow-hidden">
                                 <div class="score-bar h-full rounded-full bg-health-${area.scoreColorName}" style="width: ${area.score}%"></div>
                             </div>
